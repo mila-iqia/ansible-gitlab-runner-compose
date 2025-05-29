@@ -20,7 +20,7 @@
         group: "{{ item.group is defined | ternary(runner_target, omit) }}"
         project: "{{ item.project is defined | ternary(runner_target, omit) }}"
         tag_list: "{{ item.tags | default([]) + [inventory_hostname] }}"
-        registration_token: "{{ item.registration_token }}"
+        registration_token: "{{ item.registration_token | default(omit) }}"
         validate_certs: "{{ item.validate_certs | default('false') }}"
       register: runner_register
     - name: Define runner config snippet
