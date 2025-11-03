@@ -35,6 +35,7 @@
     name: python-gitlab
     state: present
     extra_args: --user
+    break_system_packages: "{{ gitlab_runner_break_system_packages | default(omit) }}"
 
 - name: Install python-gitlab with the package manager
   when: gitlab_runner_package_manager != 'pip'
