@@ -1,8 +1,15 @@
 ---
 name: ansible-lint
 on:
+  push:
+    branches:
+      - main
+      - mila
   pull_request:
-    branches: ["mila"]
+    branches:
+      - main
+      - mila
+
 jobs:
   build:
     name: Ansible Lint
