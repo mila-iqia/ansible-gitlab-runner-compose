@@ -3,31 +3,29 @@
   ansible.builtin.set_fact:
     runner_target: "{{ item.group | default(item.project) }}"
     runner_target_type: "{{ item.group is defined | ternary('group', 'project') }}"
-- name: Test
-  ansible.builtin.set_fact:
-    runner_filename: "{{ runner_target_type }}-{{ runner_target.split('/') | join('__') }}.toml"
-- name: Test2
-  ansible.builtin.set_fact:
-    runner_config_full_path: "{{ gitlab_runner_config_directory }}/conf.d/{{ runner_filename }}"
 
 - name: Ensure the runner is registered and retrieve its token
   block:
     - name: Ensure the runner is registered
       community.general.gitlab_runner:
-        access_level: not_protected
-        active: true
-        locked: false
-        run_untagged: true
-        state: present
+        access_level: "{{ item.access_level | default('not_protected') }}"
+        active: "{{ item.active | default(omit) }}"
+        locked: "{{ item.locked | default(omit) }}"
+        run_untagged: "{{ item.run_untagged | default(omit) }}"
+        state: "{{ item.state | default(omit) }}"
         api_url: "{{ item.gitlab_url }}"
         api_token: "{{ gitlab_runner_api_token }}"
-        description: "{{ inventory_hostname }}"
+        description: "{{ item.description | default(inventory_hostname) }}"
+        maximum_timeout: "{{ item.maximum_timeout | default(omit) }}"
         group: "{{ item.group is defined | ternary(runner_target, omit) }}"
         project: "{{ item.project is defined | ternary(runner_target, omit) }}"
         tag_list: "{{ item.tags | default([]) + [inventory_hostname] }}"
-        registration_token: "{{ item.registration_token }}"
-        validate_certs: false
+        registration_token: "{{ item.registration_token | default(omit) }}"
+        validate_certs: "{{ item.validate_certs | default('false') }}"
       register: runner_register
+    - name: Define runner config snippet
+      ansible.builtin.set_fact:
+        runner_config_full_path: "{{ gitlab_runner_config_directory }}/conf.d/runner-{{ runner_register.runner.id }}.toml"
     - name: Define runner token variable
       when: runner_register.changed and runner_register.runner.token is defined
       ansible.builtin.set_fact:
@@ -40,6 +38,8 @@
       ansible.builtin.shell: |
         set -o pipefail
         grep token {{ runner_config_full_path }} | cut -d'"' -f2
+      args:
+        executable: /bin/bash
       changed_when: false
       register: runner_token_extraction
     - name: Define runner token variable
@@ -52,4 +52,4 @@
     dest: "{{ runner_config_full_path }}"
     owner: "{{ ansible_user_id }}"
     group: docker
-    mode: 0644
+    mode: "0644"

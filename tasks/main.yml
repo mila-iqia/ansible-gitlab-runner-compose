@@ -1,9 +1,9 @@
 ---
 - name: Ensure docker-compose command exists on the host
-  ansible.builtin.command: command -v {{ gitlab_runner_docker_compose_path }}
+  ansible.builtin.stat:
+    path: "{{ gitlab_runner_docker_compose_path }}"
   register: docker_compose_exists
-  changed_when: false
-  failed_when: docker_compose_exists.rc != 0 and docker_compose_exists.rc != 127
+  failed_when: not docker_compose_exists.stat.exists
 
 - name: Ensure GitLab Runner config directory exists
   ansible.builtin.file:
@@ -11,7 +11,7 @@
     state: directory
     owner: "{{ ansible_user_id }}"
     group: docker
-    mode: 0755
+    mode: "0755"
   loop:
     - "{{ gitlab_runner_config_directory }}"
     - "{{ gitlab_runner_config_directory }}/conf"
@@ -23,18 +23,28 @@
     dest: "{{ gitlab_runner_config_directory }}/{{ item.dest }}"
     owner: "{{ ansible_user_id }}"
     group: docker
-    mode: 0644
+    mode: "0644"
   loop:
     - { src: docker-compose.yml.j2, dest: docker-compose.yml }
     - { src: 0-runner-header.toml.j2, dest: conf.d/0-runner-header.toml }
+  notify: Restart gitlab-runner
 
-- name: Install python-gitlab package
+- name: Install python-gitlab package with pip
+  when: gitlab_runner_package_manager == 'pip'
   ansible.builtin.pip:
     name: python-gitlab
     state: present
     extra_args: --user
+    break_system_packages: "{{ gitlab_runner_break_system_packages | default(omit) }}"
 
-- include_tasks: single-runner.yml
+- name: Install python-gitlab with the package manager
+  when: gitlab_runner_package_manager != 'pip'
+  ansible.builtin.package:
+    name: python3-gitlab
+    state: present
+
+- name: Configure runner
+  ansible.builtin.include_tasks: single-runner.yml
   loop: "{{ gitlab_runner_runners }}"
 
 - name: Assemble config.toml file
@@ -44,7 +54,8 @@
     delimiter: "##########################################"
     owner: "{{ ansible_user_id }}"
     group: docker
-    mode: 0644
+    mode: "0644"
+  notify: Restart gitlab-runner
 
 - name: Setup systemd unit
   become: true
@@ -53,7 +64,7 @@
     dest: /usr/lib/systemd/system/gitlab-runner.service
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Enable and start systemd unit
   become: true
@@ -61,4 +72,3 @@
     name: gitlab-runner.service
     enabled: true
     state: started
-
