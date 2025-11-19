@@ -1,6 +1,6 @@
 galaxy_info:
   role_name: gitlab_runner_compose
-  namespace: btravouillon
+  namespace: mila
   author: Léo GATELLIER
   description: A role to setup a Docker Compose based GitLab Runner
 
