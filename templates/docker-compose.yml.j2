@@ -3,6 +3,8 @@ services:
   runner:
     image: gitlab/gitlab-runner:{{ gitlab_runner_version }}
     container_name: {{ gitlab_runner_container_name }}
+    environment:
+      TZ: {{ timezone_name }}
     restart: always
     volumes:
       - ./conf:/etc/gitlab-runner
