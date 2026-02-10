@@ -27,3 +27,5 @@ gitlab_runner_package_manager: pip
 #     registration_token: mysecureprojecttoken
 #   - gitlab_url: https://my.gitlab.url
 #     registration_token: mysecureinstancetoken
+
+timezone_name: "America/Toronto"
