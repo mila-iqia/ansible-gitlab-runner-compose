@@ -8,7 +8,7 @@
 {% endif %}
   executor = "docker"
   output_limit = {{ gitlab_runner_output_limit }}
-  environment = []
+  environment = {{ item.environment | default('[]') }}
   [runners.custom_build_dir]
   [runners.cache]
     [runners.cache.s3]
